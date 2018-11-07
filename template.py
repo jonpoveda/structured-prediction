@@ -12,7 +12,7 @@ from pandas import ExcelFile
 
 from pystruct.models import ChainCRF, MultiClassClf
 from pystruct.learners import OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM
-from sklearn.cross_validation import KFold
+from sklearn.model_selection import KFold
 from sklearn.svm import LinearSVC
 
 from plot_segments import plot_segments
@@ -39,7 +39,7 @@ labels_segments = []
 segments = []
 for row in it:
     ide = row[1]['ide']
-    segments.append(np.load(os.path.join('segments',ide+'_front.npy')))
+    segments.append(np.load(os.path.join('segments',ide+'_front.npy'), encoding='latin1'))
     labels_segments.append(list(row[1].values[-num_segments_per_jacket:]))
 
 labels_segments = np.array(labels_segments).astype(int)
@@ -64,7 +64,7 @@ num_jackets = labels_segments.shape[0]
 num_labels = np.unique(np.ravel(labels_segments)).size
 
 """ CHANGE THIS IF YOU CHANGE NUMBER OF FEATURES """
-num_features = 7 
+num_features = 7
 X = np.zeros((num_jackets, num_segments_per_jacket, num_features))
 
 for jacket_segments, i in zip(segments, range(num_jackets)):
@@ -87,13 +87,13 @@ print('X, Y done')
 if add_gaussian_noise_to_features:
     print('Noise sigma {}'.format(sigma_noise))
     X = X + np.random.normal(0.0, sigma_noise, size=X.size).reshape(np.shape(X))
-      
+
 
 """
 DEFINE HERE YOUR GRAPHICAL MODEL AND CHOOSE ONE LEARNING METHOD
 (OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM)
-"""      
-    
+"""
+
 
 """ 
 Compare SVM with S-SVM doing k-fold cross validation, k=5, see scikit-learn.org 
@@ -106,9 +106,10 @@ scores_svm = np.zeros(n_folds)
 wrong_segments_crf = []
 wrong_segments_svm = []
 
-kf = KFold(num_jackets, n_folds=n_folds)
+kf = KFold(n_splits=n_folds)
+
 fold = 0
-for train_index, test_index in kf: 
+for train_index, test_index in kf.split(X):
     print(' ')
     print('train index {}'.format(train_index))
     print('test index {}'.format(test_index))
@@ -118,14 +119,14 @@ for train_index, test_index in kf:
     Y_train = Y[train_index]
     X_test = X[test_index]
     Y_test = Y[test_index]
-                             
+
     """ YOUR S-SVM TRAINING CODE HERE """
 
-    
-    
+
+
     """ LABEL THE TESTING SET AND PRINT RESULTS """
 
-    
+
     """ figure showing the result of classification of segments for
     each jacket in the testing part of present fold """
     if plot_labeling:
@@ -144,8 +145,8 @@ for train_index, test_index in kf:
 
 
     fold += 1
-    
-        
+
+
 """
 Global results
 """
@@ -170,7 +171,7 @@ print('Final score SVM: {}, {} wrong labels in total out of {}'.\
 
 if plot_coefficients:
     name_of_labels = [
-        'neck',		
+        'neck',
         'left shoulder',
         'outer left sleeve',
         'left wrist',
@@ -186,11 +187,10 @@ if plot_coefficients:
 
     """ SHOW IMAGE OF THE LEARNED UNARY COEFFICIENTS, size (num_labels, num_features)"""
     """ use matshow() and colorbar()"""
-    
-    
-    
+
+
+
     """ SHOW IMAGE OF PAIRWISE COEFFICIENTS size (num_labels, num_labels)"""
 
 
-           
-            
+
