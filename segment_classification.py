@@ -132,7 +132,7 @@ for train_index, test_index in kf:
     print('CRF learning of 1 fold has taken {} seconds'.format((end-start)/1000.0))
 
     scores_crf[fold] = ssvm.score(X_test, Y_test)
-    print np.round(end - start), 'elapsed seconds to train the model'
+    print(np.round(end - start), 'elapsed seconds to train the model')
     print("Test score with chain CRF: %f" % scores_crf[fold])
 
     """ Label the testing set and print results """
