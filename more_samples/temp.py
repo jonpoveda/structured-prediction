@@ -8,7 +8,6 @@ This is a temporary script file.
 import os
 from pandas import ExcelFile
 
-
 d = os.listdir('segments')
 
 path_measures = 'man_jacket_hand_measures.xls'
@@ -25,6 +24,6 @@ for row in it:
 ides_files = [fname.split('_') for fname in d]
 
 for fname in d:
-    if not(fname.split('_')[0] in ides_xls):
-        os.rename(os.path.join('segments',fname),
-                  os.path.join('segments','no_'+fname))
+    if not (fname.split('_')[0] in ides_xls):
+        os.rename(os.path.join('segments', fname),
+                  os.path.join('segments', 'no_' + fname))

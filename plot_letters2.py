@@ -69,17 +69,22 @@ selected = rnd.randint(len(y_test), size=n_words)
 max_word_len = max([len(y_) for y_ in y_test[selected]])
 fig, axes = plt.subplots(n_words, max_word_len, figsize=(10, 10))
 fig.subplots_adjust(wspace=0)
+
 for ind, axes_row in zip(selected, axes):
     y_pred_svm = svm.predict(X_test[ind])
     y_pred_chain = ssvm.predict([X_test[ind]])[0]
-    for i, (a, image, y_true, y_svm, y_chain) in enumerate(
-            zip(axes_row, X_test[ind], y_test[ind], y_pred_svm, y_pred_chain)):
+
+    iter = zip(axes_row, X_test[ind], y_test[ind], y_pred_svm, y_pred_chain)
+    for i, parts in enumerate(iter):
+        (a, image, y_true, y_svm, y_chain) = parts
+
         a.matshow(image.reshape(16, 8), cmap=plt.cm.Greys)
         a.text(0, 3, abc[y_true], color="#00AA00", size=25)
         a.text(0, 14, abc[y_svm], color="#5555FF", size=25)
         a.text(5, 14, abc[y_chain], color="#FF5555", size=25)
         a.set_xticks(())
         a.set_yticks(())
+
     for ii in range(i + 1, max_word_len):
         axes_row[ii].set_visible(False)
 
@@ -90,22 +95,21 @@ plt.yticks(np.arange(25), abc)
 plt.show()
 
 """ coefs unaris """
-w = ssvm.w[:26 * 8 * 16].reshape((26,16,8))
+w = ssvm.w[:26 * 8 * 16].reshape((26, 16, 8))
 """ c = 2, i=8, s = 18, o = 14 """
-#plt.figure()
-plt.matshow(w[2],cmap=plt.cm.gray)
+# plt.figure()
+plt.matshow(w[2], cmap=plt.cm.gray)
 plt.title('c')
 
-#plt.figure()
-plt.matshow(w[8],cmap=plt.cm.gray)
+# plt.figure()
+plt.matshow(w[8], cmap=plt.cm.gray)
 plt.title('i')
 
-#plt.figure()
-plt.matshow(w[18],cmap=plt.cm.gray)
+# plt.figure()
+plt.matshow(w[18], cmap=plt.cm.gray)
 plt.colorbar()
 plt.title('s')
 
-#plt.figure()
-plt.matshow(w[14],cmap=plt.cm.gray)
+# plt.figure()
+plt.matshow(w[14], cmap=plt.cm.gray)
 plt.title('o')
-
