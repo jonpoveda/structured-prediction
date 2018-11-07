@@ -4,13 +4,14 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-numpy = "*"
-matplotlib = "*"
-sklearn = "*"
-pystruct = "*"
-pandas = "*"
-cvxopt = "*"
-xlrd = "*"
+numpy = "~=1.15"
+matplotlib = "~=3.0"
+scikit-learn = "~=0.20"
+sklearn = "~=0.0"
+pystruct = "~=0.3"
+pandas = "~=0.23"
+cvxopt = "~=1.2"
+xlrd = "~=1.1"
 
 [dev-packages]
 
