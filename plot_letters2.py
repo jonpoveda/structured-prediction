@@ -54,6 +54,8 @@ svm.fit(np.vstack(X_train), np.hstack(y_train))
 
 # Train linear chain CRF
 model = ChainCRF()
+# instanciate an optimizer, C is a design parameter (slacks weight over
+# regularization) --> use validation set to refine it?
 ssvm = FrankWolfeSSVM(model=model, C=.1, max_iter=11)
 ssvm.fit(X_train, y_train)
 
