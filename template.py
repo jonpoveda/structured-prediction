@@ -142,8 +142,12 @@ def compare_svm_and_ssvm(X: np.ndarray,
         Y_test: np.ndarray = Y[test_index]
 
         """ YOUR S-SVM TRAINING CODE HERE """
+        ssvm.fit(X_test, Y_test)
 
         """ LABEL THE TESTING SET AND PRINT RESULTS """
+        scores_crf[fold] = ssvm.score(X_test, Y_test)
+        Y_pred = ssvm.predict(X_test)
+        wrong_segments_crf.append(np.sum(Y_test != Y_pred))
 
         """ figure showing the result of classification of segments for
         each jacket in the testing part of present fold """
@@ -159,8 +163,16 @@ def compare_svm_and_ssvm(X: np.ndarray,
                 )
 
         """ YOUR LINEAR SVM TRAINING CODE HERE """
+        # Organizes samples as (n_sample, feature_vect)
+        x = np.vstack(X_train)
+        y = np.hstack(Y_train)
+        svm.fit(x, y)
 
         """ LABEL THE TESTING SET AND PRINT RESULTS """
+        scores_svm[fold] = svm.score(x, y)
+        Y_pred = svm.predict(x)
+        wrong_segments_svm.append(np.sum(y != Y_pred))
+        # wrg_idx = np.flatnonzero(y != y_pred)
 
         fold += 1
 
