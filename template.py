@@ -194,8 +194,8 @@ def show_global_results(scores_svm: np.ndarray,
                         total_segments: int,
                         ) -> None:
     """ Show global results """
-    crf_score = 1.0 - wrong_segments_crf.sum() / float(total_segments)
-    svm_score = 1.0 - wrong_segments_svm.sum() / float(total_segments)
+    crf_score = 1.0 - wrong_segments_crf.mean() / float(total_segments)
+    svm_score = 1.0 - wrong_segments_svm.mean() / float(total_segments)
 
     print('\nResults per fold ')
     print(f'Scores CRF : {scores_crf}')
