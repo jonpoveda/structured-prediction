@@ -102,7 +102,7 @@ def prepare_data(segments,
 
 def add_gaussian_noise(features: np.ndarray, sigma_noise: float) -> np.ndarray:
     """ Add some gaussian noise to the features """
-    print('Noise sigma {}'.format(sigma_noise))
+    print(f'Noise sigma {sigma_noise}')
     noise = np.random.normal(0.0, sigma_noise, size=features.size)
     return features + noise.reshape(np.shape(features))
 
@@ -128,12 +128,14 @@ def compare_svm_and_ssvm(X: np.ndarray,
     kf = KFold(n_splits=n_folds)
 
     fold = 0
+    print(f'Using k={n_folds} k-fold training')
     for train_index, test_index in kf.split(X):
-        print(' ')
-        print('train index {}'.format(train_index))
-        print('test index {}'.format(test_index))
-        print('{} jackets for training, {} for testing'. \
-              format(len(train_index), len(test_index)))
+        # print(' ')
+        # print('train index {}'.format(train_index))
+        # print('test index {}'.format(test_index))
+        print(f'{fold+1}-fold: '
+              f'{len(train_index)} jackets for training, '
+              f'{len(test_index)} for testing')
         X_train: np.ndarray = X[train_index]
         Y_train: np.ndarray = Y[train_index]
         X_test: np.ndarray = X[test_index]
@@ -150,10 +152,11 @@ def compare_svm_and_ssvm(X: np.ndarray,
                 print(ti)
                 print(pred)
                 s = segments[ti]
-                plot_segments(s,
-                              caption='SSVM predictions for jacket ' + str(
-                                  ti + 1),
-                              labels_segments=pred)
+                plot_segments(
+                    s,
+                    caption='SSVM predictions for jacket ' + str(ti + 1),
+                    labels_segments=pred
+                )
 
         """ YOUR LINEAR SVM TRAINING CODE HERE """
 
@@ -182,20 +185,18 @@ def show_global_results(scores_svm: np.ndarray,
     crf_score = 1.0 - wrong_segments_crf.sum() / float(total_segments)
     svm_score = 1.0 - wrong_segments_svm.sum() / float(total_segments)
 
-    print('Results per fold ')
-    print('Scores CRF : {}'.format(scores_crf))
-    print('Scores SVM : {}'.format(scores_svm))
-    print('Wrongs CRF : {}'.format(wrong_segments_crf))
-    print('Wrongs SVM : {}'.format(wrong_segments_svm))
+    print('\nResults per fold ')
+    print(f'Scores CRF : {scores_crf}')
+    print(f'Scores SVM : {scores_svm}')
+    print(f'Wrongs CRF : {wrong_segments_crf}')
+    print(f'Wrongs SVM : {wrong_segments_svm}')
     print(' ')
-    print('Final score CRF: {}, {} wrong labels in total out of {}'. \
-          format(1.0 - wrong_segments_crf.sum() / float(total_segments),
-                 wrong_segments_crf.sum(),
-                 total_segments))
-    print('Final score SVM: {}, {} wrong labels in total out of {}'. \
-          format(1.0 - wrong_segments_svm.sum() / float(total_segments),
-                 wrong_segments_svm.sum(),
-                 total_segments))
+
+    print(f'Final score CRF: {crf_score:.4}, {wrong_segments_crf.mean()} '
+          f'wrong labels in total out of {total_segments}')
+
+    print(f'Final score SVM: {svm_score:.4}, {wrong_segments_svm.mean()} '
+          f'wrong labels in total out of {total_segments}')
 
 
 def show_coefficients(weights: np.ndarray, num_features, num_labels):
