@@ -227,10 +227,34 @@ def show_coefficients(weights: np.ndarray, num_features, num_labels):
         'right shoulder',
     ]
 
+    # Unary coefficients are the first [n_features * n_segment_types] coefs
+    # Pairwise coefficients are the second [n_segment_types * n_segment_types] coefs
+    unary_coef: np.ndarray = weights[0:(num_features * num_labels)]
+    assert unary_coef.shape == (num_features * num_labels,)
+
+    pairwise_coef: np.ndarray = weights[(num_features * num_labels):]
+    assert pairwise_coef.shape == (num_labels * num_labels,)
+
     """ SHOW IMAGE OF THE LEARNED UNARY COEFFICIENTS, size (num_labels, num_features)"""
     """ use matshow() and colorbar()"""
+    unary_coef = unary_coef.reshape(num_features, num_labels)
+
+    plt.matshow(unary_coef)
+    plt.colorbar()
+    plt.xlabel('segment types')
+    plt.ylabel('segment features')
+    plt.title("Unary coefficients: importance of segment features")
+    plt.show()
 
     """ SHOW IMAGE OF PAIRWISE COEFFICIENTS size (num_labels, num_labels)"""
+    pairwise_coef = pairwise_coef.reshape(num_labels, num_labels)
+
+    plt.matshow(pairwise_coef)
+    plt.colorbar()
+    plt.xlabel('segment types (current)')
+    plt.ylabel('segment types (next)')
+    plt.title("Pairwise coefficients: next segment type expectations")
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -285,4 +309,10 @@ if __name__ == '__main__':
     show_global_results(
         *results,
         total_segments=total_segments,
+    )
+
+    show_coefficients(
+        weights=ssvm.w,
+        num_features=num_features,
+        num_labels=num_labels,
     )
