@@ -8,6 +8,21 @@ import numpy as np
 
 
 class Segment:
+    @classmethod
+    def names(cls):
+        return (
+            'x0',
+            'y0',
+            'x1',
+            'y1',
+            'x0norm',
+            'y0norm',
+            'x1norm',
+            'y1norm',
+            'angle',
+            'length',
+        )
+
     def __init__(self, x0, y0, x1, y1,
                  x0norm, y0norm, x1norm, y1norm):
         self.x0 = x0
