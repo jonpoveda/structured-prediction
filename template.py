@@ -17,6 +17,7 @@ from sklearn.model_selection import KFold
 from sklearn.svm import LinearSVC
 from typing import Tuple, Union, Sequence, List
 
+from features_selection import features_options
 from plot_segments import plot_segments
 from segment import Segment
 
@@ -83,32 +84,7 @@ def prepare_data(segments,
     Returns:
         segments, labels
     """
-
-    def all_features(s: Segment) -> np.array:
-        return np.array((
-            s.x0, s.y0, s.x1, s.y1,
-            s.x0norm, s.y0norm, s.x1norm, s.y1norm,
-            (s.x0norm + s.x1norm) / 2.,
-            (s.y0norm + s.y1norm) / 2.,
-            np.sqrt(
-                (s.x0norm - s.x1norm) ** 2 + (s.y0norm - s.y1norm) ** 2),
-            s.angle
-        ))
-
-    def default_features(s: Segment) -> np.array:
-        return np.array((
-            s.x0norm, s.y0norm, s.x1norm, s.y1norm,
-            (s.x0norm + s.x1norm) / 2.,
-            (s.y0norm + s.y1norm) / 2.,
-            s.angle / (2 * np.pi)
-        ))
-
-    features_options = {
-        'all': (all_features, 12),
-        'default': (default_features, 7),
-    }
-
-    get_features, num_features = features_options[feature_selection]
+    get_features, num_features, _ = features_options[feature_selection]
 
     Y = labels_segments
     num_jackets = labels_segments.shape[0]
@@ -233,23 +209,9 @@ def show_global_results(scores_svm: np.ndarray,
           f'wrong labels in total out of {total_segments}')
 
 
-def show_coefficients(weights: np.ndarray, num_features, num_labels):
-    name_of_labels = [
-        'neck',
-        'left shoulder',
-        'outer left sleeve',
-        'left wrist',
-        'inner left sleeve',
-        'left chest',
-        'waist',
-        'right chest',
-        'inner right sleeve',
-        'right wrist',
-        'outer right sleeve',
-        'right shoulder',
-    ]
-
-    name_of_features = Segment.names()
+def show_coefficients(weights: np.ndarray, feature_names, label_names):
+    num_labels = len(label_names)
+    num_features = len(feature_names)
 
     # Unary coefficients are the first [n_features * n_segment_types] coefs
     # Pairwise coefficients are the second [n_segment_types * n_segment_types] coefs
@@ -267,8 +229,8 @@ def show_coefficients(weights: np.ndarray, num_features, num_labels):
     plt.title("Unary coefficients: importance of segment features", pad=32)
     plt.xlabel('segment types')
     plt.ylabel('segment features')
-    plt.xticks(range(num_labels), name_of_labels, rotation=15)
-    plt.yticks(range(num_features), name_of_features)
+    plt.xticks(range(num_labels), label_names, rotation=15)
+    plt.yticks(range(num_features), feature_names)
     plt.colorbar()
     plt.show()
 
@@ -279,8 +241,8 @@ def show_coefficients(weights: np.ndarray, num_features, num_labels):
     plt.title("Pairwise coefficients: next segment type expectations", pad=32)
     plt.ylabel('segment types (next)')
     plt.xlabel('segment types (current)')
-    plt.xticks(range(num_labels), name_of_labels, rotation=15)
-    plt.yticks(range(num_labels), name_of_labels)
+    plt.xticks(range(num_labels), label_names, rotation=15)
+    plt.yticks(range(num_labels), label_names)
     plt.colorbar()
     plt.show()
 
@@ -288,7 +250,7 @@ def show_coefficients(weights: np.ndarray, num_features, num_labels):
 if __name__ == '__main__':
     add_gaussian_noise_to_features = False
     num_segments_per_jacket = 40
-    num_features = 7
+    features = 'default'
     sigma_noise = 0.1
 
     sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
@@ -320,8 +282,10 @@ if __name__ == '__main__':
         segments,
         labels_segments,
         num_segments_per_jacket,
-        feature_selection='default',
+        feature_selection=features,
     )
+
+    num_features = X.shape[2]
 
     if add_gaussian_noise_to_features:
         X = add_gaussian_noise(X, sigma_noise)
@@ -351,8 +315,25 @@ if __name__ == '__main__':
         total_segments=total_segments,
     )
 
+    _, _, features_names = features_options[features]
+
+    label_names = [
+        'neck',
+        'left shoulder',
+        'outer left sleeve',
+        'left wrist',
+        'inner left sleeve',
+        'left chest',
+        'waist',
+        'right chest',
+        'inner right sleeve',
+        'right wrist',
+        'outer right sleeve',
+        'right shoulder',
+    ]
+
     show_coefficients(
         weights=ssvm.w,
-        num_features=num_features,
-        num_labels=num_labels,
+        feature_names=features_names,
+        label_names=label_names,
     )
