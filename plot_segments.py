@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 def plot_segments(segments, caption='', labels_segments=None):
     colors = 'rgbcmyk' * 2
-    fig = plt.figure()
+    fig = plt.figure(0)
 
     for n, s in enumerate(segments):
         if labels_segments is None:
@@ -23,6 +23,6 @@ def plot_segments(segments, caption='', labels_segments=None):
     plt.axis('equal')
     plt.gca().invert_yaxis()
     plt.title(caption)
-    plt.show(block=False)
+    plt.show(block=True)
 
     return fig
