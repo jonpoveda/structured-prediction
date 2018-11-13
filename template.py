@@ -31,17 +31,19 @@ def load_sheet(path: Union[str, Path]) -> pandas.DataFrame:
 
 
 def load_segments(sheet: pandas.DataFrame,
+                  segments_dir: Path,
                   num_segments_per_jacket: int,
                   ) -> Tuple[list, np.ndarray]:
-
+    """ Loads segments present in a sheet from a directory """
     it = sheet.iterrows()
     labels_segments = []
     segments = []
 
     for row in it:
         ide = row[1]['ide']
-        segments.append(np.load(os.path.join('segments', ide + '_front.npy'),
-                                encoding='latin1'))
+        segments.append(np.load(
+            str(segments_dir.joinpath(ide + '_front.npy')),
+            encoding='latin1'))
         labels_segments.append(list(row[1].values[-num_segments_per_jacket:]))
 
     labels_segments = np.array(labels_segments).astype(int)
@@ -265,8 +267,9 @@ if __name__ == '__main__':
 
     sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
     segments, labels_segments = load_segments(
-        sheet,
-        num_segments_per_jacket,
+        sheet=sheet,
+        segments_dir=Path('segments'),
+        num_segments_per_jacket=num_segments_per_jacket,
     )
 
     show_groundtruth(
