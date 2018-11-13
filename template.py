@@ -4,6 +4,8 @@ Created on Fri Sep  4 20:15:45 2015
 
 @author: joans
 """
+import pandas
+
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,12 +16,12 @@ from pystruct.models import ChainCRF, MultiClassClf
 from pystruct.learners import OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM
 from sklearn.model_selection import KFold
 from sklearn.svm import LinearSVC
-from typing import Tuple
+from typing import Tuple, Union, Sequence
 
 from plot_segments import plot_segments
 
 
-def load_sheet():
+def load_sheet(path: Union[str, Path]) -> pandas.DataFrame:
     """ Load the segments and the groundtruth for all jackets """
     path_measures = 'man_jacket_hand_measures.xls'
     with ExcelFile(path_measures) as xl:
@@ -28,7 +30,10 @@ def load_sheet():
     return sheet
 
 
-def load_segments(sheet, num_segments_per_jacket):
+def load_segments(sheet: pandas.DataFrame,
+                  num_segments_per_jacket: int,
+                  ) -> Tuple[list, np.ndarray]:
+
     it = sheet.iterrows()
     labels_segments = []
     segments = []
@@ -172,7 +177,7 @@ def show_global_results(scores_svm: np.ndarray,
                         scores_crf: np.ndarray,
                         wrong_segments_crf: np.ndarray,
                         total_segments: int,
-                        ):
+                        ) -> None:
     """ Show global results """
     crf_score = 1.0 - wrong_segments_crf.sum() / float(total_segments)
     svm_score = 1.0 - wrong_segments_svm.sum() / float(total_segments)
