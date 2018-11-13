@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pandas import ExcelFile
+from pathlib import Path
 
 from pystruct.models import ChainCRF, MultiClassClf
 from pystruct.learners import OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM
@@ -23,8 +24,7 @@ from plot_segments import plot_segments
 
 def load_sheet(path: Union[str, Path]) -> pandas.DataFrame:
     """ Load the segments and the groundtruth for all jackets """
-    path_measures = 'man_jacket_hand_measures.xls'
-    with ExcelFile(path_measures) as xl:
+    with ExcelFile(path) as xl:
         # be careful, parse() just reads literals, does not execute formulas
         sheet = xl.parse(xl.sheet_names[0])
     return sheet
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     num_features = 7
     sigma_noise = 0.1
 
-    sheet = load_sheet()
+    sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
     segments, labels_segments = load_segments(
         sheet,
         num_segments_per_jacket,
