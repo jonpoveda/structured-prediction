@@ -272,6 +272,17 @@ if __name__ == '__main__':
         num_segments_per_jacket=num_segments_per_jacket,
     )
 
+    sheet_extra = load_sheet(
+        Path('more_samples', 'man_jacket_hand_measures.xls'))
+    segments_extra, labels_segments_extra = load_segments(
+        sheet=sheet_extra,
+        segments_dir=Path('more_samples/segments'),
+        num_segments_per_jacket=num_segments_per_jacket,
+    )
+
+    segments = segments + segments_extra
+    labels_segments = np.concatenate((labels_segments, labels_segments_extra))
+
     show_groundtruth(
         n=2,
         sheet=sheet,
