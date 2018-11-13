@@ -232,6 +232,8 @@ def show_coefficients(weights: np.ndarray, num_features, num_labels):
         'right shoulder',
     ]
 
+    name_of_features = Segment.names()
+
     # Unary coefficients are the first [n_features * n_segment_types] coefs
     # Pairwise coefficients are the second [n_segment_types * n_segment_types] coefs
     unary_coef: np.ndarray = weights[0:(num_features * num_labels)]
@@ -245,20 +247,24 @@ def show_coefficients(weights: np.ndarray, num_features, num_labels):
     unary_coef = unary_coef.reshape(num_features, num_labels)
 
     plt.matshow(unary_coef)
-    plt.colorbar()
+    plt.title("Unary coefficients: importance of segment features", pad=32)
     plt.xlabel('segment types')
     plt.ylabel('segment features')
-    plt.title("Unary coefficients: importance of segment features")
+    plt.xticks(range(num_labels), name_of_labels, rotation=15)
+    plt.yticks(range(num_features), name_of_features)
+    plt.colorbar()
     plt.show()
 
     """ SHOW IMAGE OF PAIRWISE COEFFICIENTS size (num_labels, num_labels)"""
     pairwise_coef = pairwise_coef.reshape(num_labels, num_labels)
 
     plt.matshow(pairwise_coef)
-    plt.colorbar()
-    plt.xlabel('segment types (current)')
+    plt.title("Pairwise coefficients: next segment type expectations", pad=32)
     plt.ylabel('segment types (next)')
-    plt.title("Pairwise coefficients: next segment type expectations")
+    plt.xlabel('segment types (current)')
+    plt.xticks(range(num_labels), name_of_labels, rotation=15)
+    plt.yticks(range(num_labels), name_of_labels)
+    plt.colorbar()
     plt.show()
 
 
