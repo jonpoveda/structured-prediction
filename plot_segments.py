@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 def plot_segments(segments, caption='', labels_segments=None):
     colors = 'rgbcmyk' * 2
     fig = plt.figure()
-    num_segments = len(segments)
-    for s, n in zip(segments, range(num_segments)):
+
+    for n, s in enumerate(segments):
         if labels_segments is None:
             color = 'blue'
         else:

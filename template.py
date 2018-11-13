@@ -85,9 +85,9 @@ def prepare_data(segments,
 
     X = np.zeros((num_jackets, num_segments_per_jacket, num_features))
 
-    for jacket_segments, i in zip(segments, range(num_jackets)):
-        for s, j in zip(jacket_segments, range(num_segments_per_jacket)):
-            """ set the features """
+    """ set the features """
+    for i, jacket_segments in enumerate(segments):
+        for j, s in enumerate(jacket_segments):
             X[i, j, 0:num_features] = \
                 s.x0norm, s.y0norm, s.x1norm, s.y1norm, \
                 (s.x0norm + s.x1norm) / 2., (s.y0norm + s.y1norm) / 2., \
