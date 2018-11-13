@@ -67,7 +67,7 @@ def show_groundtruth(n: int,
 def prepare_data(segments,
                  labels_segments,
                  num_segments_per_jacket,
-                 num_features,
+                 feature_selection: str = 'default',
                  ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Make matrices X of shape (number of jackets, number of features)
@@ -83,24 +83,41 @@ def prepare_data(segments,
     Returns:
         segments, labels
     """
+
+    def all_features(s: Segment) -> np.array:
+        return np.array((
+            s.x0, s.y0, s.x1, s.y1,
+            s.x0norm, s.y0norm, s.x1norm, s.y1norm,
+            (s.x0norm + s.x1norm) / 2.,
+            (s.y0norm + s.y1norm) / 2.,
+            np.sqrt(
+                (s.x0norm - s.x1norm) ** 2 + (s.y0norm - s.y1norm) ** 2),
+            s.angle
+        ))
+
+    def default_features(s: Segment) -> np.array:
+        return np.array((
+            s.x0norm, s.y0norm, s.x1norm, s.y1norm,
+            (s.x0norm + s.x1norm) / 2.,
+            (s.y0norm + s.y1norm) / 2.,
+            s.angle / (2 * np.pi)
+        ))
+
+    features_options = {
+        'all': (all_features, 12),
+        'default': (default_features, 7),
+    }
+
+    get_features, num_features = features_options[feature_selection]
+
     Y = labels_segments
     num_jackets = labels_segments.shape[0]
-
     X = np.zeros((num_jackets, num_segments_per_jacket, num_features))
 
     """ set the features """
     for i, jacket_segments in enumerate(segments):
         for j, s in enumerate(jacket_segments):
-            X[i, j, 0:num_features] = \
-                s.x0norm, s.y0norm, s.x1norm, s.y1norm, \
-                (s.x0norm + s.x1norm) / 2., (s.y0norm + s.y1norm) / 2., \
-                s.angle / (2 * np.pi)
-            """ all possible features at present, see segment.py """
-            # s.x0, s.y0, s.x1, s.y1, \
-            # s.x0norm, s.y0norm, s.x1norm, s.y1norm, \
-            # (s.x0norm+s.x1norm)/2., (s.y0norm+s.y1norm)/2., \
-            # np.sqrt((s.x0norm-s.x1norm)**2 + (s.y0norm-s.y1norm)**2), \
-            # s.angle, \
+            X[i, j, 0:num_features] = get_features(s)
 
     return X, Y
 
@@ -303,7 +320,7 @@ if __name__ == '__main__':
         segments,
         labels_segments,
         num_segments_per_jacket,
-        num_features,
+        feature_selection='default',
     )
 
     if add_gaussian_noise_to_features:
