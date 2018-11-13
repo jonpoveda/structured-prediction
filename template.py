@@ -225,8 +225,13 @@ def show_coefficients(weights: np.ndarray, feature_names, label_names):
     """ use matshow() and colorbar()"""
     unary_coef = unary_coef.reshape(num_features, num_labels)
 
-    plt.matshow(unary_coef)
-    plt.title("Unary coefficients: importance of segment features", pad=32)
+    # Normalize coefficients so can be treated as probabilities
+    unary_coef = unary_coef - unary_coef.min(axis=1).reshape(-1, 1)
+    unary_coef = unary_coef / unary_coef.sum(axis=1).reshape(-1, 1)
+
+    plt.matshow(unary_coef, cmap='coolwarm')
+    plt.title("Unary coefficients: importance of segment features"
+              "\n[normalized as probabilities]", pad=32)
     plt.xlabel('segment types')
     plt.ylabel('segment features')
     plt.xticks(range(num_labels), label_names, rotation=15)
@@ -237,8 +242,12 @@ def show_coefficients(weights: np.ndarray, feature_names, label_names):
     """ SHOW IMAGE OF PAIRWISE COEFFICIENTS size (num_labels, num_labels)"""
     pairwise_coef = pairwise_coef.reshape(num_labels, num_labels)
 
-    plt.matshow(pairwise_coef)
-    plt.title("Pairwise coefficients: next segment type expectations", pad=32)
+    pairwise_coef = pairwise_coef - pairwise_coef.min(axis=1).reshape(-1, 1)
+    pairwise_coef = pairwise_coef / pairwise_coef.sum(axis=1).reshape(-1, 1)
+
+    plt.matshow(pairwise_coef, cmap='coolwarm')
+    plt.title("Pairwise coefficients: next segment type expectations"
+              "\n[normalized as probabilities]", pad=32)
     plt.ylabel('segment types (next)')
     plt.xlabel('segment types (current)')
     plt.xticks(range(num_labels), label_names, rotation=15)
