@@ -5,8 +5,6 @@ Created on Fri Sep  4 20:15:45 2015
 @author: joans
 """
 import pandas
-
-import os
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -17,9 +15,10 @@ from pystruct.models import ChainCRF, MultiClassClf
 from pystruct.learners import OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM
 from sklearn.model_selection import KFold
 from sklearn.svm import LinearSVC
-from typing import Tuple, Union, Sequence
+from typing import Tuple, Union, Sequence, List
 
 from plot_segments import plot_segments
+from segment import Segment
 
 
 def load_sheet(path: Union[str, Path]) -> pandas.DataFrame:
@@ -33,8 +32,12 @@ def load_sheet(path: Union[str, Path]) -> pandas.DataFrame:
 def load_segments(sheet: pandas.DataFrame,
                   segments_dir: Path,
                   num_segments_per_jacket: int,
-                  ) -> Tuple[list, np.ndarray]:
-    """ Loads segments present in a sheet from a directory """
+                  ) -> Tuple[List, np.ndarray]:
+    """ Loads segments present in a sheet from a directory
+
+    Returns:
+        a collection of jackets (containing arrays of Segments) and its labels
+    """
     it = sheet.iterrows()
     labels_segments = []
     segments = []
