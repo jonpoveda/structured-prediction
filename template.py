@@ -4,22 +4,20 @@ Created on Fri Sep  4 20:15:45 2015
 
 @author: joans
 """
-import pandas
+import json
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas
 from pandas import ExcelFile
 from pathlib import Path
-
-from pystruct.models import ChainCRF, MultiClassClf
 from pystruct.learners import OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM
+from pystruct.models import ChainCRF, MultiClassClf
 from sklearn.model_selection import KFold
 from sklearn.svm import LinearSVC
-from typing import Tuple, Union, Sequence, List
+from typing import List, Sequence, Tuple, Union
 
 from features_selection import features_options
 from plot_segments import plot_segments
-from segment import Segment
 
 
 def load_sheet(path: Union[str, Path]) -> pandas.DataFrame:
@@ -368,15 +366,58 @@ def run(add_gaussian_noise_to_features=False,
     return svm_score, crf_score
 
 
+def run_test_noise(num_segments_per_jacket, features, experiment: str):
+    fig_path = Path('logs', f'{experiment}.png')
+    data_path = Path('logs', f'{experiment}.json')
+
+    svm_scores = []
+    crf_scores = []
+    sigmas = np.arange(0, 3, 0.1).tolist()
+
+    for sigma_noise in sigmas:
+        print(f'Running with sigma = {sigma_noise}')
+        scores = run(
+            num_segments_per_jacket=num_segments_per_jacket,
+            features=features,
+            add_gaussian_noise_to_features=True,
+            sigma_noise=sigma_noise,
+        )
+        svm_score, crf_score = scores
+
+        svm_scores.append(svm_score)
+        crf_scores.append(crf_score)
+
+    plt.plot(sigmas, svm_scores, label='SVM')
+    plt.plot(sigmas, crf_scores, label='CRF')
+    plt.xlabel('Noise (sigma)')
+    plt.ylabel('Accuracy')
+    plt.autoscale(axis='x', tight=True)
+    plt.ylim(0, 1)
+    plt.legend()
+    plt.title('Effect of noise')
+    plt.savefig(fig_path)
+    plt.show()
+
+    with data_path.open('w') as file:
+        json.dump(
+            {
+                'sigmas': sigmas,
+                'svm_scores': svm_scores,
+                'crf_scores': crf_scores,
+            },
+            file,
+            indent=2,
+        )
+
+    return sigmas, svm_scores, crf_scores
+
+
 if __name__ == '__main__':
+    Path('logs').mkdir(exist_ok=True)
+
     num_segments_per_jacket = 40
     features = 'default'
-    add_gaussian_noise_to_features = False
-    sigma_noise = 0.1
 
-    scores = run(
-        num_segments_per_jacket=num_segments_per_jacket,
-        features=features,
-        add_gaussian_noise_to_features=add_gaussian_noise_to_features,
-        sigma_noise=sigma_noise,
-    )
+    run_test_noise(num_segments_per_jacket,
+                   features,
+                   experiment='noise_delete')
