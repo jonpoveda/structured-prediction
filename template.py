@@ -14,7 +14,8 @@ from pystruct.learners import OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM
 from pystruct.models import ChainCRF, MultiClassClf
 from sklearn.model_selection import KFold
 from sklearn.svm import LinearSVC
-from typing import List, Sequence, Tuple, Union
+from typing import List, Sequence, Tuple, Union, Callable
+from functools import partial
 
 from features_selection import features_options
 from plot_segments import plot_segments
@@ -265,27 +266,15 @@ def run(add_gaussian_noise_to_features=False,
         num_segments_per_jacket=40,
         features='default',
         sigma_noise=0.1,
+        sample_loader: Callable = None,
         show_groundtruth=False,
         show_global_results=False,
         show_coefficients=False,
         ) -> Tuple[float, float]:
-    sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
-    segments, labels_segments = load_segments(
-        sheet=sheet,
-        segments_dir=Path('segments'),
-        num_segments_per_jacket=num_segments_per_jacket,
-    )
+    if sample_loader is None:
+        sample_loader = load_all_samples
 
-    sheet_extra = load_sheet(
-        Path('more_samples', 'man_jacket_hand_measures.xls'))
-    segments_extra, labels_segments_extra = load_segments(
-        sheet=sheet_extra,
-        segments_dir=Path('more_samples/segments'),
-        num_segments_per_jacket=num_segments_per_jacket,
-    )
-
-    segments = segments + segments_extra
-    labels_segments = np.concatenate((labels_segments, labels_segments_extra))
+    segments, labels_segments, sheet = sample_loader(num_segments_per_jacket)
 
     if show_groundtruth:
         plot_groundtruth(
@@ -366,6 +355,26 @@ def run(add_gaussian_noise_to_features=False,
     return svm_score, crf_score
 
 
+def load_all_samples(num_segments_per_jacket):
+    sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
+    samples, labels = load_segments(
+        sheet=sheet,
+        segments_dir=Path('segments'),
+        num_segments_per_jacket=num_segments_per_jacket,
+    )
+    sheet_extra = load_sheet(
+        Path('more_samples', 'man_jacket_hand_measures.xls'))
+    samples_extra, labels_segments_extra = load_segments(
+        sheet=sheet_extra,
+        segments_dir=Path('more_samples/segments'),
+        num_segments_per_jacket=num_segments_per_jacket,
+    )
+    samples = samples + samples_extra
+    labels = np.concatenate((labels, labels_segments_extra))
+
+    return samples, labels, sheet
+
+
 def run_test_noise(num_segments_per_jacket, features, experiment: str):
     fig_path = Path('logs', f'{experiment}.png')
     data_path = Path('logs', f'{experiment}.json')
@@ -381,6 +390,7 @@ def run_test_noise(num_segments_per_jacket, features, experiment: str):
             features=features,
             add_gaussian_noise_to_features=True,
             sigma_noise=sigma_noise,
+            sample_loader=load_all_samples,
         )
         svm_score, crf_score = scores
 
@@ -412,6 +422,66 @@ def run_test_noise(num_segments_per_jacket, features, experiment: str):
     return sigmas, svm_scores, crf_scores
 
 
+def load_n_samples(num_segments_per_jacket: int, n: int):
+    segments, labels_segments, sheet = load_all_samples(
+        num_segments_per_jacket)
+    return segments[0:n], labels_segments[0:n], sheet
+
+
+def run_test_number_of_samples(num_segments_per_jacket,
+                               features,
+                               experiment: str):
+    fig_path = Path('logs', f'{experiment}.png')
+    data_path = Path('logs', f'{experiment}.json')
+
+    svm_scores = []
+    crf_scores = []
+    sigmas = np.arange(0, 3, 0.1).tolist()
+
+    loaders = []
+    number_of_samples = list(range(105, 5, -10))
+    for num in number_of_samples:
+        loaders.append(
+            partial(load_n_samples, n=num)
+        )
+
+    for sample_loader in loaders:
+        print(f'Running with loader = {sample_loader}')
+        scores = run(
+            num_segments_per_jacket=num_segments_per_jacket,
+            features=features,
+            sample_loader=sample_loader,
+        )
+        svm_score, crf_score = scores
+
+        svm_scores.append(svm_score)
+        crf_scores.append(crf_score)
+
+    plt.plot(number_of_samples, svm_scores, label='SVM')
+    plt.plot(number_of_samples, crf_scores, label='CRF')
+    plt.xlabel('Noise (sigma)')
+    plt.ylabel('Accuracy')
+    plt.autoscale(axis='x', tight=True)
+    plt.ylim(0.4, 1)
+    plt.legend()
+    plt.title('Effect of number of samples')
+    plt.savefig(fig_path)
+    plt.show()
+
+    with data_path.open('w') as file:
+        json.dump(
+            {
+                'number_of_samples': number_of_samples,
+                'svm_scores': svm_scores,
+                'crf_scores': crf_scores,
+            },
+            file,
+            indent=2,
+        )
+
+    return sigmas, svm_scores, crf_scores
+
+
 if __name__ == '__main__':
     Path('logs').mkdir(exist_ok=True)
 
@@ -421,3 +491,7 @@ if __name__ == '__main__':
     run_test_noise(num_segments_per_jacket,
                    features,
                    experiment='noise_delete')
+
+    run_test_number_of_samples(num_segments_per_jacket,
+                               features,
+                               experiment='segments_FW')
