@@ -189,11 +189,11 @@ def show_global_results(scores_svm: np.ndarray,
                         wrong_segments_svm: np.ndarray,
                         scores_crf: np.ndarray,
                         wrong_segments_crf: np.ndarray,
+                        svm_score: float,
+                        crf_score: float,
                         total_segments: int,
                         ) -> None:
     """ Show global results """
-    crf_score = 1.0 - wrong_segments_crf.mean() / float(total_segments)
-    svm_score = 1.0 - wrong_segments_svm.mean() / float(total_segments)
 
     print('\nResults per fold ')
     print(f'Scores CRF : {scores_crf}')
@@ -254,6 +254,13 @@ def show_coefficients(weights: np.ndarray, feature_names, label_names):
     plt.yticks(range(num_labels), label_names)
     plt.colorbar()
     plt.show()
+
+
+def get_global_scores(*results, total_segments):
+    scores_svm, wrong_segments_svm, scores_crf, wrong_segments_crf = results
+    crf_score = 1.0 - wrong_segments_crf.mean() / float(total_segments)
+    svm_score = 1.0 - wrong_segments_svm.mean() / float(total_segments)
+    return svm_score, crf_score
 
 
 if __name__ == '__main__':
@@ -319,8 +326,14 @@ if __name__ == '__main__':
     num_labels = np.unique(np.ravel(labels_segments)).size
     total_segments = num_jackets * num_segments_per_jacket
 
+    svm_score, crf_score = get_global_scores(
+        *results, total_segments=total_segments
+    )
+
     show_global_results(
         *results,
+        svm_score=svm_score,
+        crf_score=crf_score,
         total_segments=total_segments,
     )
 
