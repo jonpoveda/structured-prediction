@@ -263,12 +263,11 @@ def get_global_scores(*results, total_segments):
     return svm_score, crf_score
 
 
-if __name__ == '__main__':
-    add_gaussian_noise_to_features = False
-    num_segments_per_jacket = 40
-    features = 'default'
-    sigma_noise = 0.1
-
+def run(add_gaussian_noise_to_features=False,
+        num_segments_per_jacket=40,
+        features='default',
+        sigma_noise=0.1,
+        ) -> None:
     sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
     segments, labels_segments = load_segments(
         sheet=sheet,
@@ -358,4 +357,18 @@ if __name__ == '__main__':
         weights=ssvm.w,
         feature_names=features_names,
         label_names=label_names,
+    )
+
+
+if __name__ == '__main__':
+    num_segments_per_jacket = 40
+    features = 'default'
+    add_gaussian_noise_to_features = False
+    sigma_noise = 0.1
+
+    run(
+        num_segments_per_jacket=num_segments_per_jacket,
+        features=features,
+        add_gaussian_noise_to_features=add_gaussian_noise_to_features,
+        sigma_noise=sigma_noise,
     )
