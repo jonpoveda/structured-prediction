@@ -270,7 +270,7 @@ def run(add_gaussian_noise_to_features=False,
         show_groundtruth=False,
         show_global_results=False,
         show_coefficients=False,
-        ) -> None:
+        ) -> Tuple[float, float]:
     sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
     segments, labels_segments = load_segments(
         sheet=sheet,
@@ -365,6 +365,8 @@ def run(add_gaussian_noise_to_features=False,
             label_names=label_names,
         )
 
+    return svm_score, crf_score
+
 
 if __name__ == '__main__':
     num_segments_per_jacket = 40
@@ -372,7 +374,7 @@ if __name__ == '__main__':
     add_gaussian_noise_to_features = False
     sigma_noise = 0.1
 
-    run(
+    scores = run(
         num_segments_per_jacket=num_segments_per_jacket,
         features=features,
         add_gaussian_noise_to_features=add_gaussian_noise_to_features,
