@@ -267,6 +267,9 @@ def run(add_gaussian_noise_to_features=False,
         num_segments_per_jacket=40,
         features='default',
         sigma_noise=0.1,
+        show_groundtruth=False,
+        show_global_results=False,
+        show_coefficients=False,
         ) -> None:
     sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
     segments, labels_segments = load_segments(
@@ -286,12 +289,13 @@ def run(add_gaussian_noise_to_features=False,
     segments = segments + segments_extra
     labels_segments = np.concatenate((labels_segments, labels_segments_extra))
 
-    plot_groundtruth(
-        n=2,
-        sheet=sheet,
-        segments=segments,
-        labels_segments=labels_segments
-    )
+    if show_groundtruth:
+        plot_groundtruth(
+            n=2,
+            sheet=sheet,
+            segments=segments,
+            labels_segments=labels_segments
+        )
 
     X, Y = prepare_data(
         segments,
@@ -329,35 +333,37 @@ def run(add_gaussian_noise_to_features=False,
         *results, total_segments=total_segments
     )
 
-    print_global_results(
-        *results,
-        svm_score=svm_score,
-        crf_score=crf_score,
-        total_segments=total_segments,
-    )
+    if show_global_results:
+        print_global_results(
+            *results,
+            svm_score=svm_score,
+            crf_score=crf_score,
+            total_segments=total_segments,
+        )
 
-    _, _, features_names = features_options[features]
+    if show_coefficients:
+        _, _, features_names = features_options[features]
 
-    label_names = [
-        'neck',
-        'left shoulder',
-        'outer left sleeve',
-        'left wrist',
-        'inner left sleeve',
-        'left chest',
-        'waist',
-        'right chest',
-        'inner right sleeve',
-        'right wrist',
-        'outer right sleeve',
-        'right shoulder',
-    ]
+        label_names = [
+            'neck',
+            'left shoulder',
+            'outer left sleeve',
+            'left wrist',
+            'inner left sleeve',
+            'left chest',
+            'waist',
+            'right chest',
+            'inner right sleeve',
+            'right wrist',
+            'outer right sleeve',
+            'right shoulder',
+        ]
 
-    plot_coefficients(
-        weights=ssvm.w,
-        feature_names=features_names,
-        label_names=label_names,
-    )
+        plot_coefficients(
+            weights=ssvm.w,
+            feature_names=features_names,
+            label_names=label_names,
+        )
 
 
 if __name__ == '__main__':
