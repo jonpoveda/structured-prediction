@@ -55,7 +55,7 @@ def load_segments(sheet: pandas.DataFrame,
     return segments, labels_segments
 
 
-def show_groundtruth(n: int,
+def plot_groundtruth(n: int,
                      sheet: pandas.DataFrame,
                      segments: Sequence,
                      labels_segments: np.ndarray
@@ -149,7 +149,7 @@ def compare_svm_and_ssvm(X: np.ndarray,
 
         """ figure showing the result of classification of segments for
         each jacket in the testing part of present fold """
-        if plot_labeling:
+        if show_labeling:
             for ti, pred in zip(test_index, Y_pred):
                 print(ti)
                 print(pred)
@@ -185,14 +185,14 @@ def compare_svm_and_ssvm(X: np.ndarray,
     )
 
 
-def show_global_results(scores_svm: np.ndarray,
-                        wrong_segments_svm: np.ndarray,
-                        scores_crf: np.ndarray,
-                        wrong_segments_crf: np.ndarray,
-                        svm_score: float,
-                        crf_score: float,
-                        total_segments: int,
-                        ) -> None:
+def print_global_results(scores_svm: np.ndarray,
+                         wrong_segments_svm: np.ndarray,
+                         scores_crf: np.ndarray,
+                         wrong_segments_crf: np.ndarray,
+                         svm_score: float,
+                         crf_score: float,
+                         total_segments: int,
+                         ) -> None:
     """ Show global results """
 
     print('\nResults per fold ')
@@ -209,7 +209,7 @@ def show_global_results(scores_svm: np.ndarray,
           f'wrong labels in total out of {total_segments}')
 
 
-def show_coefficients(weights: np.ndarray, feature_names, label_names):
+def plot_coefficients(weights: np.ndarray, feature_names, label_names):
     num_labels = len(label_names)
     num_features = len(feature_names)
 
@@ -286,7 +286,7 @@ def run(add_gaussian_noise_to_features=False,
     segments = segments + segments_extra
     labels_segments = np.concatenate((labels_segments, labels_segments_extra))
 
-    show_groundtruth(
+    plot_groundtruth(
         n=2,
         sheet=sheet,
         segments=segments,
@@ -329,7 +329,7 @@ def run(add_gaussian_noise_to_features=False,
         *results, total_segments=total_segments
     )
 
-    show_global_results(
+    print_global_results(
         *results,
         svm_score=svm_score,
         crf_score=crf_score,
@@ -353,7 +353,7 @@ def run(add_gaussian_noise_to_features=False,
         'right shoulder',
     ]
 
-    show_coefficients(
+    plot_coefficients(
         weights=ssvm.w,
         feature_names=features_names,
         label_names=label_names,
