@@ -582,6 +582,18 @@ if __name__ == '__main__':
     num_segments_per_jacket = 40
     features = 'default'
 
+    run(
+        add_gaussian_noise_to_features=False,
+        num_segments_per_jacket=num_segments_per_jacket,
+        features='default',
+        sample_loader=load_all_samples,
+        learning_method=FrankWolfeSSVM,
+        show_groundtruth=True,
+        show_global_results=True,
+        show_coefficients=True,
+        experiment_name='FrankWolfeSSVM',
+    )
+
     run_test_noise(num_segments_per_jacket,
                    features,
                    experiment_name='noise_FrankWolfeSSVM')
