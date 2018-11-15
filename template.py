@@ -293,6 +293,7 @@ def run(add_gaussian_noise_to_features=False,
         features='default',
         sigma_noise=0.1,
         sample_loader: Callable = None,
+        learning_method: Callable = None,
         show_groundtruth=False,
         show_global_results=False,
         show_coefficients=False,
@@ -329,7 +330,7 @@ def run(add_gaussian_noise_to_features=False,
     svm = LinearSVC(dual=False, C=.1)
 
     model = ChainCRF()
-    ssvm = FrankWolfeSSVM(model, C=0.1, max_iter=10)
+    ssvm = learning_method(model, C=0.1, max_iter=10)
 
     # With 5 in each fold we have 4 jackets for testing, 19 for training,
     # with 23 we have leave one out : 22 for training, 1 for testing
@@ -397,6 +398,7 @@ def run_test_noise(num_segments_per_jacket, features, experiment: str):
             add_gaussian_noise_to_features=True,
             sigma_noise=sigma_noise,
             sample_loader=load_all_samples,
+            learning_method=FrankWolfeSSVM,
         )
         svm_score, crf_score = scores
 
@@ -451,6 +453,7 @@ def run_test_number_of_samples(num_segments_per_jacket,
             num_segments_per_jacket=num_segments_per_jacket,
             features=features,
             sample_loader=sample_loader,
+            learning_method=FrankWolfeSSVM,
         )
         svm_score, crf_score = scores
 
@@ -482,6 +485,66 @@ def run_test_number_of_samples(num_segments_per_jacket,
     return sigmas, svm_scores, crf_scores
 
 
+def run_test_learning_method(num_segments_per_jacket, features, experiment):
+    """ Compares different learning methods
+
+    SVM is run always so its result is averaged.
+    """
+    fig_path = Path('logs', f'{experiment}.png')
+    data_path = Path('logs', f'{experiment}.json')
+
+    methods = [
+        OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM,
+    ]
+    method_names = [str(method.__name__) for method in methods]
+
+    svm_scores = []
+    crf_scores = []
+
+    # partial(load_n_segments, n=num)
+
+    for method in methods:
+        print(f'Running with method = {method.__name__}')
+        scores = run(
+            num_segments_per_jacket=num_segments_per_jacket,
+            features=features,
+            sample_loader=load_all_samples,
+            learning_method=method,
+        )
+        svm_score, crf_score = scores
+
+        svm_scores.append(svm_score)
+        crf_scores.append(crf_score)
+
+    one_slack_score, n_slack_score, frankwolfe_score = crf_scores
+    svm_score = np.mean(svm_scores)
+
+    plt.bar('LinearSVC', svm_score, label='LinearSVC')
+    plt.bar('OneSlackSSVM', one_slack_score, label='OneSlackSSVM')
+    plt.bar('NSlackSSVM', n_slack_score, label='NSlackSSVM')
+    plt.bar('FrankWolfeSSVM', frankwolfe_score, label='FrankWolfeSSVM')
+    plt.xlabel('Learning method')
+    plt.ylabel('Accuracy')
+    plt.autoscale(axis='x', tight=True)
+    plt.ylim(0.80, 1)
+    plt.title('Comparing learning methods')
+    plt.savefig(fig_path)
+    plt.show()
+
+    with data_path.open('w') as file:
+        json.dump(
+            {
+                'method_names': method_names,
+                'one_slack_score': one_slack_score,
+                'n_slack_score': n_slack_score,
+                'frankwolfe_score': frankwolfe_score,
+            },
+            file,
+            indent=2,
+        )
+    return method_names, one_slack_score, n_slack_score, frankwolfe_score
+
+
 if __name__ == '__main__':
     Path('logs').mkdir(exist_ok=True)
 
@@ -495,3 +558,7 @@ if __name__ == '__main__':
     run_test_number_of_samples(num_segments_per_jacket,
                                features,
                                experiment='segments_FW')
+
+    run_test_learning_method(num_segments_per_jacket,
+                             features,
+                             experiment='learning_methods')
