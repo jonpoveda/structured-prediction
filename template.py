@@ -21,82 +21,6 @@ from features_selection import features_options
 from plot_segments import plot_segments
 
 
-def load_sheet(path: Union[str, Path]) -> pandas.DataFrame:
-    """ Load the segments and the groundtruth for all jackets """
-    with ExcelFile(path) as xl:
-        # be careful, parse() just reads literals, does not execute formulas
-        sheet = xl.parse(xl.sheet_names[0])
-    return sheet
-
-
-def load_segments(sheet: pandas.DataFrame,
-                  segments_dir: Path,
-                  num_segments_per_jacket: int,
-                  ) -> Tuple[List, np.ndarray]:
-    """ Loads segments present in a sheet from a directory
-
-    Returns:
-        a collection of jackets (containing arrays of Segments) and its labels
-    """
-    it = sheet.iterrows()
-    labels_segments = []
-    segments = []
-
-    for row in it:
-        ide = row[1]['ide']
-        segments.append(np.load(
-            str(segments_dir.joinpath(ide + '_front.npy')),
-            encoding='latin1'))
-        labels_segments.append(list(row[1].values[-num_segments_per_jacket:]))
-
-    labels_segments = np.array(labels_segments).astype(int)
-
-    return segments, labels_segments
-
-
-def plot_groundtruth(n: int,
-                     sheet: pandas.DataFrame,
-                     segments: Sequence,
-                     labels_segments: np.ndarray
-                     ) -> None:
-    """ Show groundtruth for the n-jacket """
-    plot_segments(segments[n], sheet.ide[n], labels_segments[n])
-    plt.show(block=True)
-
-
-def prepare_data(segments,
-                 labels_segments,
-                 num_segments_per_jacket,
-                 feature_selection: str = 'default',
-                 ) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Make matrices X of shape (number of jackets, number of features)
-    and Y of shape (number of jackets, number of segments) where,
-    for all jackets,
-        X = select the features for each segment
-        Y = the grountruth label for each segment
-
-    X contains segments and is of shape [n_samples, n_segments, segment_size]
-
-    Y contains labels and is of shape [n_samples, n_segments]
-
-    Returns:
-        segments, labels
-    """
-    get_features, num_features, _ = features_options[feature_selection]
-
-    Y = labels_segments
-    num_jackets = labels_segments.shape[0]
-    X = np.zeros((num_jackets, num_segments_per_jacket, num_features))
-
-    """ set the features """
-    for i, jacket_segments in enumerate(segments):
-        for j, s in enumerate(jacket_segments):
-            X[i, j, 0:num_features] = get_features(s)
-
-    return X, Y
-
-
 def add_gaussian_noise(features: np.ndarray, sigma_noise: float) -> np.ndarray:
     """ Add some gaussian noise to the features """
     print(f'Noise sigma {sigma_noise}')
@@ -184,28 +108,70 @@ def compare_svm_and_ssvm(X: np.ndarray,
     )
 
 
-def print_global_results(scores_svm: np.ndarray,
-                         wrong_segments_svm: np.ndarray,
-                         scores_crf: np.ndarray,
-                         wrong_segments_crf: np.ndarray,
-                         svm_score: float,
-                         crf_score: float,
-                         total_segments: int,
-                         ) -> None:
-    """ Show global results """
+def get_global_scores(*results, total_segments):
+    scores_svm, wrong_segments_svm, scores_crf, wrong_segments_crf = results
+    crf_score = 1.0 - wrong_segments_crf.mean() / float(total_segments)
+    svm_score = 1.0 - wrong_segments_svm.mean() / float(total_segments)
+    return svm_score, crf_score
 
-    print('\nResults per fold ')
-    print(f'Scores CRF : {scores_crf}')
-    print(f'Scores SVM : {scores_svm}')
-    print(f'Wrongs CRF : {wrong_segments_crf}')
-    print(f'Wrongs SVM : {wrong_segments_svm}')
-    print(' ')
 
-    print(f'Final score CRF: {crf_score:.4}, {wrong_segments_crf.mean()} '
-          f'wrong labels in total out of {total_segments}')
+def load_all_samples(num_segments_per_jacket):
+    sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
+    samples, labels = load_segments(
+        sheet=sheet,
+        segments_dir=Path('segments'),
+        num_segments_per_jacket=num_segments_per_jacket,
+    )
+    sheet_extra = load_sheet(
+        Path('more_samples', 'man_jacket_hand_measures.xls'))
+    samples_extra, labels_segments_extra = load_segments(
+        sheet=sheet_extra,
+        segments_dir=Path('more_samples/segments'),
+        num_segments_per_jacket=num_segments_per_jacket,
+    )
+    samples = samples + samples_extra
+    labels = np.concatenate((labels, labels_segments_extra))
 
-    print(f'Final score SVM: {svm_score:.4}, {wrong_segments_svm.mean()} '
-          f'wrong labels in total out of {total_segments}')
+    return samples, labels, sheet
+
+
+def load_n_samples(num_segments_per_jacket: int, n: int):
+    segments, labels_segments, sheet = load_all_samples(
+        num_segments_per_jacket)
+    return segments[0:n], labels_segments[0:n], sheet
+
+
+def load_segments(sheet: pandas.DataFrame,
+                  segments_dir: Path,
+                  num_segments_per_jacket: int,
+                  ) -> Tuple[List, np.ndarray]:
+    """ Loads segments present in a sheet from a directory
+
+    Returns:
+        a collection of jackets (containing arrays of Segments) and its labels
+    """
+    it = sheet.iterrows()
+    labels_segments = []
+    segments = []
+
+    for row in it:
+        ide = row[1]['ide']
+        segments.append(np.load(
+            str(segments_dir.joinpath(ide + '_front.npy')),
+            encoding='latin1'))
+        labels_segments.append(list(row[1].values[-num_segments_per_jacket:]))
+
+    labels_segments = np.array(labels_segments).astype(int)
+
+    return segments, labels_segments
+
+
+def load_sheet(path: Union[str, Path]) -> pandas.DataFrame:
+    """ Load the segments and the groundtruth for all jackets """
+    with ExcelFile(path) as xl:
+        # be careful, parse() just reads literals, does not execute formulas
+        sheet = xl.parse(xl.sheet_names[0])
+    return sheet
 
 
 def plot_coefficients(weights: np.ndarray, feature_names, label_names):
@@ -255,11 +221,71 @@ def plot_coefficients(weights: np.ndarray, feature_names, label_names):
     plt.show()
 
 
-def get_global_scores(*results, total_segments):
-    scores_svm, wrong_segments_svm, scores_crf, wrong_segments_crf = results
-    crf_score = 1.0 - wrong_segments_crf.mean() / float(total_segments)
-    svm_score = 1.0 - wrong_segments_svm.mean() / float(total_segments)
-    return svm_score, crf_score
+def plot_groundtruth(n: int,
+                     sheet: pandas.DataFrame,
+                     segments: Sequence,
+                     labels_segments: np.ndarray
+                     ) -> None:
+    """ Show groundtruth for the n-jacket """
+    plot_segments(segments[n], sheet.ide[n], labels_segments[n])
+    plt.show(block=True)
+
+
+def prepare_data(segments,
+                 labels_segments,
+                 num_segments_per_jacket,
+                 feature_selection: str = 'default',
+                 ) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Make matrices X of shape (number of jackets, number of features)
+    and Y of shape (number of jackets, number of segments) where,
+    for all jackets,
+        X = select the features for each segment
+        Y = the grountruth label for each segment
+
+    X contains segments and is of shape [n_samples, n_segments, segment_size]
+
+    Y contains labels and is of shape [n_samples, n_segments]
+
+    Returns:
+        segments, labels
+    """
+    get_features, num_features, _ = features_options[feature_selection]
+
+    Y = labels_segments
+    num_jackets = labels_segments.shape[0]
+    X = np.zeros((num_jackets, num_segments_per_jacket, num_features))
+
+    """ set the features """
+    for i, jacket_segments in enumerate(segments):
+        for j, s in enumerate(jacket_segments):
+            X[i, j, 0:num_features] = get_features(s)
+
+    return X, Y
+
+
+def print_global_results(scores_svm: np.ndarray,
+                         wrong_segments_svm: np.ndarray,
+                         scores_crf: np.ndarray,
+                         wrong_segments_crf: np.ndarray,
+                         svm_score: float,
+                         crf_score: float,
+                         total_segments: int,
+                         ) -> None:
+    """ Show global results """
+
+    print('\nResults per fold ')
+    print(f'Scores CRF : {scores_crf}')
+    print(f'Scores SVM : {scores_svm}')
+    print(f'Wrongs CRF : {wrong_segments_crf}')
+    print(f'Wrongs SVM : {wrong_segments_svm}')
+    print(' ')
+
+    print(f'Final score CRF: {crf_score:.4}, {wrong_segments_crf.mean()} '
+          f'wrong labels in total out of {total_segments}')
+
+    print(f'Final score SVM: {svm_score:.4}, {wrong_segments_svm.mean()} '
+          f'wrong labels in total out of {total_segments}')
 
 
 def run(add_gaussian_noise_to_features=False,
@@ -355,26 +381,6 @@ def run(add_gaussian_noise_to_features=False,
     return svm_score, crf_score
 
 
-def load_all_samples(num_segments_per_jacket):
-    sheet = load_sheet(Path('man_jacket_hand_measures.xls'))
-    samples, labels = load_segments(
-        sheet=sheet,
-        segments_dir=Path('segments'),
-        num_segments_per_jacket=num_segments_per_jacket,
-    )
-    sheet_extra = load_sheet(
-        Path('more_samples', 'man_jacket_hand_measures.xls'))
-    samples_extra, labels_segments_extra = load_segments(
-        sheet=sheet_extra,
-        segments_dir=Path('more_samples/segments'),
-        num_segments_per_jacket=num_segments_per_jacket,
-    )
-    samples = samples + samples_extra
-    labels = np.concatenate((labels, labels_segments_extra))
-
-    return samples, labels, sheet
-
-
 def run_test_noise(num_segments_per_jacket, features, experiment: str):
     fig_path = Path('logs', f'{experiment}.png')
     data_path = Path('logs', f'{experiment}.json')
@@ -420,12 +426,6 @@ def run_test_noise(num_segments_per_jacket, features, experiment: str):
         )
 
     return sigmas, svm_scores, crf_scores
-
-
-def load_n_samples(num_segments_per_jacket: int, n: int):
-    segments, labels_segments, sheet = load_all_samples(
-        num_segments_per_jacket)
-    return segments[0:n], labels_segments[0:n], sheet
 
 
 def run_test_number_of_samples(num_segments_per_jacket,
