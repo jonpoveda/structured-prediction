@@ -14,7 +14,7 @@ from pystruct.learners import OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM
 from pystruct.models import ChainCRF, MultiClassClf
 from sklearn.model_selection import KFold
 from sklearn.svm import LinearSVC
-from typing import List, Sequence, Tuple, Union, Callable
+from typing import List, Sequence, Tuple, Union, Callable, Optional
 from functools import partial
 
 from features_selection import features_options
@@ -174,7 +174,11 @@ def load_sheet(path: Union[str, Path]) -> pandas.DataFrame:
     return sheet
 
 
-def plot_coefficients(weights: np.ndarray, feature_names, label_names):
+def plot_coefficients(weights: np.ndarray,
+                      feature_names,
+                      label_names,
+                      experiment_name: Optional[str] = None,
+                      ) -> None:
     num_labels = len(label_names)
     num_features = len(feature_names)
 
@@ -202,6 +206,11 @@ def plot_coefficients(weights: np.ndarray, feature_names, label_names):
     plt.xticks(range(num_labels), label_names, rotation=15)
     plt.yticks(range(num_features), feature_names)
     plt.colorbar()
+
+    if experiment_name is not None:
+        fig_path = Path('logs', f'{experiment_name}_unary.png')
+        plt.savefig(fig_path)
+
     plt.show()
 
     """ SHOW IMAGE OF PAIRWISE COEFFICIENTS size (num_labels, num_labels)"""
@@ -218,6 +227,11 @@ def plot_coefficients(weights: np.ndarray, feature_names, label_names):
     plt.xticks(range(num_labels), label_names, rotation=15)
     plt.yticks(range(num_labels), label_names)
     plt.colorbar()
+
+    if experiment_name is not None:
+        fig_path = Path('logs', f'{experiment_name}_pairwise.png')
+        plt.savefig(fig_path)
+
     plt.show()
 
 
@@ -297,6 +311,7 @@ def run(add_gaussian_noise_to_features=False,
         show_groundtruth=False,
         show_global_results=False,
         show_coefficients=False,
+        experiment_name: Optional[str] = None,
         ) -> Tuple[float, float]:
     if sample_loader is None:
         sample_loader = load_all_samples
@@ -347,6 +362,18 @@ def run(add_gaussian_noise_to_features=False,
         *results, total_segments=total_segments
     )
 
+    if experiment_name is not None:
+        data_path = Path('logs', f'{experiment_name}_scores.json')
+        with data_path.open('w') as file:
+            json.dump(
+                {
+                    'svm_score': svm_score,
+                    'crf_score': crf_score,
+                },
+                file,
+                indent=2,
+            )
+
     if show_global_results:
         print_global_results(
             *results,
@@ -377,15 +404,13 @@ def run(add_gaussian_noise_to_features=False,
             weights=ssvm.w,
             feature_names=features_names,
             label_names=label_names,
+            experiment_name=experiment_name,
         )
 
     return svm_score, crf_score
 
 
-def run_test_noise(num_segments_per_jacket, features, experiment: str):
-    fig_path = Path('logs', f'{experiment}.png')
-    data_path = Path('logs', f'{experiment}.json')
-
+def run_test_noise(num_segments_per_jacket, features, experiment_name: str):
     svm_scores = []
     crf_scores = []
     sigmas = np.arange(0, 3, 0.1).tolist()
@@ -399,12 +424,14 @@ def run_test_noise(num_segments_per_jacket, features, experiment: str):
             sigma_noise=sigma_noise,
             sample_loader=load_all_samples,
             learning_method=FrankWolfeSSVM,
+            experiment_name=experiment_name,
         )
         svm_score, crf_score = scores
 
         svm_scores.append(svm_score)
         crf_scores.append(crf_score)
 
+    fig_path = Path('logs', f'{experiment_name}_noise.png')
     plt.plot(sigmas, svm_scores, label='SVM')
     plt.plot(sigmas, crf_scores, label='CRF')
     plt.xlabel('Noise (sigma)')
@@ -416,6 +443,7 @@ def run_test_noise(num_segments_per_jacket, features, experiment: str):
     plt.savefig(fig_path)
     plt.show()
 
+    data_path = Path('logs', f'{experiment_name}_noise.json')
     with data_path.open('w') as file:
         json.dump(
             {
@@ -432,10 +460,7 @@ def run_test_noise(num_segments_per_jacket, features, experiment: str):
 
 def run_test_number_of_samples(num_segments_per_jacket,
                                features,
-                               experiment: str):
-    fig_path = Path('logs', f'{experiment}.png')
-    data_path = Path('logs', f'{experiment}.json')
-
+                               experiment_name: str):
     svm_scores = []
     crf_scores = []
     sigmas = np.arange(0, 3, 0.1).tolist()
@@ -454,12 +479,14 @@ def run_test_number_of_samples(num_segments_per_jacket,
             features=features,
             sample_loader=sample_loader,
             learning_method=FrankWolfeSSVM,
+            experiment_name=experiment_name,
         )
         svm_score, crf_score = scores
 
         svm_scores.append(svm_score)
         crf_scores.append(crf_score)
 
+    fig_path = Path('logs', f'{experiment_name}_samples.png')
     plt.plot(number_of_samples, svm_scores, label='SVM')
     plt.plot(number_of_samples, crf_scores, label='CRF')
     plt.xlabel('Noise (sigma)')
@@ -471,6 +498,7 @@ def run_test_number_of_samples(num_segments_per_jacket,
     plt.savefig(fig_path)
     plt.show()
 
+    data_path = Path('logs', f'{experiment_name}_samples.json')
     with data_path.open('w') as file:
         json.dump(
             {
@@ -485,14 +513,14 @@ def run_test_number_of_samples(num_segments_per_jacket,
     return sigmas, svm_scores, crf_scores
 
 
-def run_test_learning_method(num_segments_per_jacket, features, experiment):
+def run_test_learning_method(num_segments_per_jacket,
+                             features,
+                             experiment_name,
+                             ) -> Tuple[List[str], float, float, float]:
     """ Compares different learning methods
 
     SVM is run always so its result is averaged.
     """
-    fig_path = Path('logs', f'{experiment}.png')
-    data_path = Path('logs', f'{experiment}.json')
-
     methods = [
         OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM,
     ]
@@ -510,6 +538,7 @@ def run_test_learning_method(num_segments_per_jacket, features, experiment):
             features=features,
             sample_loader=load_all_samples,
             learning_method=method,
+            experiment_name=experiment_name,
         )
         svm_score, crf_score = scores
 
@@ -519,6 +548,7 @@ def run_test_learning_method(num_segments_per_jacket, features, experiment):
     one_slack_score, n_slack_score, frankwolfe_score = crf_scores
     svm_score = np.mean(svm_scores)
 
+    fig_path = Path('logs', f'{experiment_name}_method.png')
     plt.bar('LinearSVC', svm_score, label='LinearSVC')
     plt.bar('OneSlackSSVM', one_slack_score, label='OneSlackSSVM')
     plt.bar('NSlackSSVM', n_slack_score, label='NSlackSSVM')
@@ -531,6 +561,7 @@ def run_test_learning_method(num_segments_per_jacket, features, experiment):
     plt.savefig(fig_path)
     plt.show()
 
+    data_path = Path('logs', f'{experiment_name}_method.json')
     with data_path.open('w') as file:
         json.dump(
             {
@@ -553,12 +584,12 @@ if __name__ == '__main__':
 
     run_test_noise(num_segments_per_jacket,
                    features,
-                   experiment='noise_delete')
+                   experiment_name='noise_FrankWolfeSSVM')
 
     run_test_number_of_samples(num_segments_per_jacket,
                                features,
-                               experiment='segments_FW')
+                               experiment_name='segments_FrankWolfeSSVM')
 
     run_test_learning_method(num_segments_per_jacket,
                              features,
-                             experiment='learning_methods')
+                             experiment_name='learning_methods')
