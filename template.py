@@ -14,7 +14,7 @@ from pystruct.learners import OneSlackSSVM, NSlackSSVM, FrankWolfeSSVM
 from pystruct.models import ChainCRF, MultiClassClf
 from sklearn.model_selection import KFold
 from sklearn.svm import LinearSVC
-from typing import List, Sequence, Tuple, Union, Callable, Optional
+from typing import List, Sequence, Tuple, Union, Callable, Optional, Iterable
 from functools import partial
 
 from features_selection import features_options
@@ -308,6 +308,7 @@ def run(add_gaussian_noise_to_features=False,
         sigma_noise=0.1,
         sample_loader: Callable = None,
         learning_method: Callable = None,
+        features: Iterable[int] = None,
         show_groundtruth=False,
         show_global_results=False,
         show_coefficients=False,
@@ -332,6 +333,12 @@ def run(add_gaussian_noise_to_features=False,
         num_segments_per_jacket,
         feature_selection=feature_set,
     )
+
+    def pick_features(arr: np.ndarray, features: Iterable[int]):
+        return arr[:, :, features]
+
+    if features is not None:
+        X = pick_features(X, features)
 
     num_features = X.shape[2]
 
@@ -576,6 +583,93 @@ def run_test_learning_method(num_segments_per_jacket,
     return method_names, one_slack_score, n_slack_score, frankwolfe_score
 
 
+from feature_relevance import feature_relevance
+
+
+def run_test_features(num_segments_per_jacket,
+                      features,
+                      experiment_name):
+    unary_coeff_default_experiment = np.array([
+        [0.00685162, 0.13670038, 0., 0.13396857, 0.00342581, 0.13533447,
+         0.08383054, 0.09523605, 0.09793283, 0.08699478, 0.12860954,
+         0.09111541],
+        [0.12336596, 0.09957966, 0.13677306, 0., 0.06122748, 0.06338093,
+         0.09900027, 0.03169047, 0.01410955, 0.14888256, 0.07425956,
+         0.14773051],
+        [0.0084382, 0.13566063, 0.02305881, 0., 0.05875059, 0.02639469,
+         0.16681362, 0.00441264, 0.1127821, 0.01540366, 0.28474956,
+         0.1635355, ],
+        [0.03509838, 0.06866554, 0.06122099, 0.09813618, 0.04815969,
+         0.04143554, 0.15958555, 0.11057723, 0.16135967, 0., 0.16047261,
+         0.05528862],
+        [0.08327444, 0.04525033, 0.05142011, 0.12703061, 0.08901612,
+         0.08614047, 0.07021811, 0.12041581, 0.09406804, 0.1328481, 0.,
+         0.10031785],
+        [0.07472008, 0.10568236, 0., 0.09094891, 0.10052445, 0.08653539,
+         0.08219606, 0.08874215, 0.09136026, 0.12239117, 0.04160312,
+         0.11529605],
+        [0.05937339, 0.18471646, 0.01332578, 0.16094225, 0.14690756, 0.,
+         0.0978974, 0.01056175, 0.12406503, 0.00528087, 0.11098122, 0.08594829
+         ]]
+    )
+    feature_sorted_by_relevance, _ = feature_relevance(
+        unary_coeff_default_experiment)
+
+    feature_lists = []
+    for idx, feature in enumerate(feature_sorted_by_relevance, start=1):
+        feature_lists.append(feature_sorted_by_relevance[0:idx])
+
+    number_of_features = [len(_) for _ in feature_lists]
+    print(feature_lists)
+    print(number_of_features)
+    # fold == [(2,), (2, 6), (2, 6, 3), (2, 6, 3, 0), (2, 6, 3, 0, 1),
+    #           (2, 6, 3, 0, 1, 4), (2, 6, 3, 0, 1, 4, 5)]
+
+    # TODO (jonatan@adsmurai.com) do a 'run' selecting the features in the 'fold'
+    svm_scores = []
+    crf_scores = []
+
+    for feature_list in feature_lists:
+        print(f'Running with features = {feature_list}')
+        scores = run(
+            num_segments_per_jacket=num_segments_per_jacket,
+            feature_set=features,
+            sample_loader=load_all_samples,
+            learning_method=FrankWolfeSSVM,
+            experiment_name=experiment_name,
+            features=feature_list,
+        )
+        svm_score, crf_score = scores
+
+        svm_scores.append(svm_score)
+        crf_scores.append(crf_score)
+
+    fig_path = Path('logs', f'{experiment_name}_features.png')
+    plt.plot(number_of_features, svm_scores, label='LinearSVC')
+    plt.plot(number_of_features, crf_scores, label='FrankWolfeSSVM')
+    plt.xlabel('Number of features')
+    plt.ylabel('Accuracy')
+    plt.xlim(7, 1)
+    plt.ylim(0.40, 1)
+    plt.title('Effect of reducing the number of features')
+    plt.legend()
+    plt.savefig(fig_path)
+    plt.show()
+
+    data_path = Path('logs', f'{experiment_name}_features.json')
+    with data_path.open('w') as file:
+        json.dump(
+            {
+                'features_used': feature_lists,
+                'svm_scores': svm_scores,
+                'crf_scores': crf_scores,
+            },
+            file,
+            indent=2,
+        )
+    return svm_scores, crf_scores
+
+
 if __name__ == '__main__':
     Path('logs').mkdir(exist_ok=True)
 
@@ -605,3 +699,7 @@ if __name__ == '__main__':
     run_test_learning_method(num_segments_per_jacket,
                              features,
                              experiment_name='learning_methods')
+
+    run_test_features(num_segments_per_jacket,
+                      features,
+                      experiment_name='features_FrankWolfeSSVM')
