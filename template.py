@@ -235,13 +235,15 @@ def plot_coefficients(weights: np.ndarray,
     plt.show()
 
 
-def plot_groundtruth(n: int,
+def plot_groundtruth(sample_number: int,
                      sheet: pandas.DataFrame,
                      segments: Sequence,
                      labels_segments: np.ndarray
                      ) -> None:
     """ Show groundtruth for the n-jacket """
-    plot_segments(segments[n], sheet.ide[n], labels_segments[n])
+    fig = plot_segments(segments[sample_number], sheet.ide[sample_number],
+                  labels_segments[sample_number])
+    fig.savefig(Path('logs', f'groundtruth_sample_{sample_number}.png'))
     plt.show(block=True)
 
 
@@ -321,7 +323,7 @@ def run(add_gaussian_noise_to_features=False,
 
     if show_groundtruth:
         plot_groundtruth(
-            n=2,
+            sample_number=2,
             sheet=sheet,
             segments=segments,
             labels_segments=labels_segments
