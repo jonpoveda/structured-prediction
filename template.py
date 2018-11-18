@@ -441,8 +441,8 @@ def run_test_noise(num_segments_per_jacket, features, experiment_name: str):
         crf_scores.append(crf_score)
 
     fig_path = Path('logs', f'{experiment_name}_noise.png')
-    plt.plot(sigmas, svm_scores, label='SVM')
-    plt.plot(sigmas, crf_scores, label='CRF')
+    plt.plot(sigmas, svm_scores, label='LinearSVC')
+    plt.plot(sigmas, crf_scores, label='FrankWolfeSSVM')
     plt.xlabel('Noise (sigma)')
     plt.ylabel('Accuracy')
     plt.autoscale(axis='x', tight=True)
