@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from pathlib import Path
 
 
 def plain_histogram_cost(histogram: np.ndarray):
@@ -9,7 +10,7 @@ def plain_histogram_cost(histogram: np.ndarray):
     return energy.sum()
 
 
-def feature_relevance(coeffs: np.array):
+def feature_relevance(coeffs: np.array, sort: bool = True):
     """ Returns features sorted by decreasing relevance and their relevance
 
     Args:
@@ -17,7 +18,8 @@ def feature_relevance(coeffs: np.array):
     """
     feature_costs = [plain_histogram_cost(feature) for feature in coeffs]
     pairs = [(cost, idx) for idx, cost in enumerate(feature_costs)]
-    pairs.sort(reverse=True)
+    if sort:
+        pairs.sort(reverse=True)
     relevances, feature_by_relevance = zip(*pairs)
 
     return feature_by_relevance, relevances
@@ -56,6 +58,18 @@ if __name__ == '__main__':
     print(f'Features sorted by decreasing relevance: {feature_by_relevance}\n'
           f'Relevances: {relevances}')
 
+    # Plot feature relevances
+    feature_by_relevance, relevances = feature_relevance(unary_coeff, sort=False)
+    plt.figure()
+    plt.fill_between(feature_by_relevance, relevances)
+    plt.xlabel('Feature number')
+    plt.ylabel('Energy')
+    plt.autoscale(axis='x', tight=True)
+    plt.ylim(0)
+    plt.title('Feature relevances')
+    plt.savefig(Path('logs', 'feature_relevances.png'))
+    plt.show()
+
     if plot_histograms:
         for i, feature in enumerate(unary_coeff):
             plt.bar(range(1, len(feature) + 1), feature,
@@ -64,7 +78,6 @@ if __name__ == '__main__':
             plt.title(f'Feature {i}')
             plt.xlabel('Segments')
             plt.autoscale(axis='both')
-            plt.show()
 
         for i, segment in enumerate(unary_coeff.T):
             plt.bar(range(1, len(segment) + 1), segment,
