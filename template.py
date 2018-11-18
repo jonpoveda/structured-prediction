@@ -496,9 +496,9 @@ def run_test_number_of_samples(num_segments_per_jacket,
         crf_scores.append(crf_score)
 
     fig_path = Path('logs', f'{experiment_name}_samples.png')
-    plt.plot(number_of_samples, svm_scores, label='SVM')
-    plt.plot(number_of_samples, crf_scores, label='CRF')
-    plt.xlabel('Noise (sigma)')
+    plt.plot(number_of_samples, svm_scores, label='LinearSVC')
+    plt.plot(number_of_samples, crf_scores, label='FrankWolfeSSVM')
+    plt.xlabel('Number of samples used')
     plt.ylabel('Accuracy')
     plt.autoscale(axis='x', tight=True)
     plt.ylim(0.4, 1)
