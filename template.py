@@ -304,7 +304,7 @@ def print_global_results(scores_svm: np.ndarray,
 
 def run(add_gaussian_noise_to_features=False,
         num_segments_per_jacket=40,
-        features='default',
+        feature_set='default',
         sigma_noise=0.1,
         sample_loader: Callable = None,
         learning_method: Callable = None,
@@ -330,7 +330,7 @@ def run(add_gaussian_noise_to_features=False,
         segments,
         labels_segments,
         num_segments_per_jacket,
-        feature_selection=features,
+        feature_selection=feature_set,
     )
 
     num_features = X.shape[2]
@@ -383,7 +383,7 @@ def run(add_gaussian_noise_to_features=False,
         )
 
     if show_coefficients:
-        _, _, features_names = features_options[features]
+        _, _, features_names = features_options[feature_set]
 
         label_names = [
             'neck',
@@ -419,7 +419,7 @@ def run_test_noise(num_segments_per_jacket, features, experiment_name: str):
         print(f'Running with sigma = {sigma_noise}')
         scores = run(
             num_segments_per_jacket=num_segments_per_jacket,
-            features=features,
+            feature_set=features,
             add_gaussian_noise_to_features=True,
             sigma_noise=sigma_noise,
             sample_loader=load_all_samples,
@@ -476,7 +476,7 @@ def run_test_number_of_samples(num_segments_per_jacket,
         print(f'Running with loader = {sample_loader}')
         scores = run(
             num_segments_per_jacket=num_segments_per_jacket,
-            features=features,
+            feature_set=features,
             sample_loader=sample_loader,
             learning_method=FrankWolfeSSVM,
             experiment_name=experiment_name,
@@ -535,7 +535,7 @@ def run_test_learning_method(num_segments_per_jacket,
         print(f'Running with method = {method.__name__}')
         scores = run(
             num_segments_per_jacket=num_segments_per_jacket,
-            features=features,
+            feature_set=features,
             sample_loader=load_all_samples,
             learning_method=method,
             experiment_name=experiment_name,
@@ -585,7 +585,7 @@ if __name__ == '__main__':
     run(
         add_gaussian_noise_to_features=False,
         num_segments_per_jacket=num_segments_per_jacket,
-        features='default',
+        feature_set='default',
         sample_loader=load_all_samples,
         learning_method=FrankWolfeSSVM,
         show_groundtruth=True,
