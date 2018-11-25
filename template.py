@@ -46,6 +46,8 @@ def compare_svm_and_ssvm(X: np.ndarray,
     scores_svm = np.zeros(n_folds)
     wrong_segments_crf = []
     wrong_segments_svm = []
+    wrongly_predicted_svm = None
+    wrongly_predicted_crf = None
 
     kf = KFold(n_splits=n_folds)
 
@@ -69,6 +71,7 @@ def compare_svm_and_ssvm(X: np.ndarray,
         """ LABEL THE TESTING SET AND PRINT RESULTS """
         scores_crf[fold] = ssvm.score(X_test, Y_test)
         Y_pred = ssvm.predict(X_test)
+        wrongly_predicted_crf = np.flatnonzero(y != Y_pred)
         wrong_segments_crf.append(np.sum(Y_test != Y_pred))
 
         """ figure showing the result of classification of segments for
@@ -93,8 +96,8 @@ def compare_svm_and_ssvm(X: np.ndarray,
         """ LABEL THE TESTING SET AND PRINT RESULTS """
         scores_svm[fold] = svm.score(x, y)
         Y_pred = svm.predict(x)
+        wrongly_predicted_svm = np.flatnonzero(y != Y_pred)
         wrong_segments_svm.append(np.sum(y != Y_pred))
-        # wrg_idx = np.flatnonzero(y != y_pred)
 
         fold += 1
 
@@ -106,6 +109,8 @@ def compare_svm_and_ssvm(X: np.ndarray,
         wrong_segments_svm,
         scores_crf,
         wrong_segments_crf,
+        wrongly_predicted_svm,
+        wrongly_predicted_crf,
     )
 
 
