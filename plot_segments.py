@@ -7,9 +7,9 @@ Created on Mon Oct 30 23:19:37 2017
 import matplotlib.pyplot as plt
 
 
-def plot_segments(segments, caption='', labels_segments=None):
+def plot_segments(segments, caption='', labels_segments=None, block=True):
     colors = 'rgbcmyk' * 2
-    fig = plt.figure(0)
+    fig = plt.figure()
 
     for n, s in enumerate(segments):
         if labels_segments is None:
@@ -23,6 +23,7 @@ def plot_segments(segments, caption='', labels_segments=None):
     plt.axis('equal')
     plt.gca().invert_yaxis()
     plt.title(caption)
-    plt.show(block=True)
+    plt.show(block=block)
 
     return fig
+

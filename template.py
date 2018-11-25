@@ -36,6 +36,7 @@ def compare_svm_and_ssvm(X: np.ndarray,
                          n_folds: int,
                          segments: list,
                          show_labeling: bool = False,
+                         show_difference: bool = False,
                          ) -> Tuple[np.ndarray, ...]:
     """ Compare SVM with S-SVM doing k-fold cross validation
 
@@ -70,14 +71,15 @@ def compare_svm_and_ssvm(X: np.ndarray,
 
         """ LABEL THE TESTING SET AND PRINT RESULTS """
         scores_crf[fold] = ssvm.score(X_test, Y_test)
-        Y_pred = ssvm.predict(X_test)
-        wrongly_predicted_crf = np.flatnonzero(y != Y_pred)
-        wrong_segments_crf.append(np.sum(Y_test != Y_pred))
+        Y_pred_crf = ssvm.predict(X_test)
+        wrongly_predicted_crf = np.flatnonzero(Y_test != Y_pred_crf)
+        well_predicted_crf = np.flatnonzero(Y_test == Y_pred_crf)
+        wrong_segments_crf.append(np.sum(Y_test != Y_pred_crf))
 
         """ figure showing the result of classification of segments for
         each jacket in the testing part of present fold """
         if show_labeling:
-            for ti, pred in zip(test_index, Y_pred):
+            for ti, pred in zip(test_index, Y_pred_crf):
                 print(ti)
                 print(pred)
                 s = segments[ti]
@@ -95,22 +97,75 @@ def compare_svm_and_ssvm(X: np.ndarray,
 
         """ LABEL THE TESTING SET AND PRINT RESULTS """
         scores_svm[fold] = svm.score(x, y)
-        Y_pred = svm.predict(x)
-        wrongly_predicted_svm = np.flatnonzero(y != Y_pred)
-        wrong_segments_svm.append(np.sum(y != Y_pred))
+        Y_pred_svm = svm.predict(x)
+        wrongly_predicted_svm = np.flatnonzero(y != Y_pred_svm)
+        well_predicted_svm = np.flatnonzero(y == Y_pred_svm)
+        wrong_segments_svm.append(np.sum(y != Y_pred_svm))
 
         fold += 1
 
     wrong_segments_crf = np.array(wrong_segments_crf)
     wrong_segments_svm = np.array(wrong_segments_svm)
 
+    if show_difference:
+        # Get wrongly class by both methods
+        crf_better_svm = np.setxor1d(wrongly_predicted_svm,
+                                     wrongly_predicted_crf)
+        some_sample = crf_better_svm[0]
+
+        plot_segments(
+            segments=segments[some_sample],
+            caption=f'Groundtruth sample {some_sample}',
+            labels_segments=Y_test[some_sample],
+            block=False,
+        )
+
+        plot_segments(
+            segments=segments[some_sample],
+            caption=f'CRF wrongly classified sample {some_sample}',
+            labels_segments=Y_pred_crf[some_sample],
+            block=False,
+        )
+
+        Y_pred_svm = Y_pred_svm.reshape((-1, 40))
+        plot_segments(
+            segments=segments[some_sample],
+            caption=f'SVM wrongly classified sample {some_sample}',
+            labels_segments=Y_pred_svm[some_sample],
+            block=True,
+        )
+
+        # Get wrongly class by SVM but well by CRF
+        crf_better_svm = np.setxor1d(wrongly_predicted_svm, well_predicted_crf)
+        some_sample = crf_better_svm[0]
+
+        plot_segments(
+            segments=segments[some_sample],
+            caption=f'Groundtruth sample {some_sample}',
+            labels_segments=Y_test[some_sample],
+            block=False,
+        )
+
+        plot_segments(
+            segments=segments[some_sample],
+            caption=f'CRF well classified sample {some_sample}',
+            labels_segments=Y_pred_crf[some_sample],
+            block=False,
+        )
+
+        Y_pred_svm = Y_pred_svm.reshape((-1, 40))
+        plot_segments(
+            segments=segments[some_sample],
+            caption=f'SVM wrongly classified sample {some_sample}',
+            labels_segments=Y_pred_svm[some_sample],
+            block=True,
+        )
+
     return (
         scores_svm,
         wrong_segments_svm,
         scores_crf,
         wrong_segments_crf,
-        wrongly_predicted_svm,
-        wrongly_predicted_crf,
     )
 
 
@@ -248,7 +303,7 @@ def plot_groundtruth(sample_number: int,
                      ) -> None:
     """ Show groundtruth for the n-jacket """
     fig = plot_segments(segments[sample_number], sheet.ide[sample_number],
-                  labels_segments[sample_number])
+                        labels_segments[sample_number])
     fig.savefig(Path('logs', f'groundtruth_sample_{sample_number}.png'))
     plt.show(block=True)
 
@@ -321,6 +376,8 @@ def run(add_gaussian_noise_to_features=False,
         show_global_results=False,
         show_coefficients=False,
         experiment_name: Optional[str] = None,
+        show_labeling=False,
+        show_difference=False,
         ) -> Tuple[float, float]:
     if sample_loader is None:
         sample_loader = load_all_samples
@@ -366,7 +423,8 @@ def run(add_gaussian_noise_to_features=False,
     # with 23 we have leave one out : 22 for training, 1 for testing
     results = compare_svm_and_ssvm(
         X=X, Y=Y, svm=svm, ssvm=ssvm, n_folds=5, segments=segments,
-        show_labeling=False,
+        show_labeling=show_labeling,
+        show_difference=show_difference,
     )
 
     num_jackets = labels_segments.shape[0]
@@ -591,8 +649,6 @@ def run_test_learning_method(num_segments_per_jacket,
     return method_names, one_slack_score, n_slack_score, frankwolfe_score
 
 
-
-
 def run_test_features(num_segments_per_jacket,
                       features,
                       experiment_name):
@@ -710,3 +766,17 @@ if __name__ == '__main__':
     run_test_features(num_segments_per_jacket,
                       features,
                       experiment_name='features_FrankWolfeSSVM')
+
+    run(
+        add_gaussian_noise_to_features=False,
+        num_segments_per_jacket=num_segments_per_jacket,
+        feature_set='default',
+        sample_loader=load_all_samples,
+        learning_method=FrankWolfeSSVM,
+        show_groundtruth=False,
+        show_global_results=True,
+        show_coefficients=False,
+        experiment_name='wrong',
+        show_labeling=False,
+        show_difference=True,
+    )
