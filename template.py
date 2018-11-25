@@ -17,6 +17,7 @@ from sklearn.svm import LinearSVC
 from typing import List, Sequence, Tuple, Union, Callable, Optional, Iterable
 from functools import partial
 
+from feature_relevance import feature_relevance
 from features_selection import features_options
 from plot_segments import plot_segments
 
@@ -585,7 +586,6 @@ def run_test_learning_method(num_segments_per_jacket,
     return method_names, one_slack_score, n_slack_score, frankwolfe_score
 
 
-from feature_relevance import feature_relevance
 
 
 def run_test_features(num_segments_per_jacket,
