@@ -139,6 +139,7 @@ def compare_svm_and_ssvm(X: np.ndarray,
         crf_better_svm = np.setxor1d(wrongly_predicted_svm, well_predicted_crf)
         some_sample = crf_better_svm[0]
 
+
         plot_segments(
             segments=segments[some_sample],
             caption=f'Groundtruth sample {some_sample}',
@@ -417,7 +418,7 @@ def run(add_gaussian_noise_to_features=False,
     svm = LinearSVC(dual=False, C=.1)
 
     model = ChainCRF()
-    ssvm = learning_method(model, C=0.1, max_iter=10)
+    ssvm = learning_method(model, max_iter=100)
 
     # With 5 in each fold we have 4 jackets for testing, 19 for training,
     # with 23 we have leave one out : 22 for training, 1 for testing
@@ -612,6 +613,7 @@ def run_test_learning_method(num_segments_per_jacket,
             sample_loader=load_all_samples,
             learning_method=method,
             experiment_name=experiment_name,
+            show_global_results=True,
         )
         svm_score, crf_score = scores
 
